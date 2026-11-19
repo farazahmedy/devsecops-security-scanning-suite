@@ -1,0 +1,36 @@
+# Azure DevOps Template: Gitleaks Enterprise Secret Scanning
+parameters:
+  - name: configPath
+    type: string
+    default: 'configs/gitleaks/.gitleaks.toml'
+  - name: failOnLeak
+    type: boolean
+    default: true
+
+steps:
+  - script: |
+      echo "==> Downloading Gitleaks v8..."
+      curl -sSfL https://github.com/gitleaks/gitleaks/releases/download/v8.18.2/gitleaks_8.18.2_linux_x64.tar.gz | tar -xz
+      chmod +x gitleaks
+
+      echo "==> Scanning codebase and git commit history for leaks..."
+      ./gitleaks detect \
+        --config=${{ parameters.configPath }} \
+        --report-format=json \
+        --report-path=$(Build.ArtifactStagingDirectory)/gitleaks-results.json \
+        --redact \
+        --verbose
+
+      SCAN_EXIT=$?
+      if [ $SCAN_EXIT -ne 0 ] && [ "${{ parameters.failOnLeak }}" = "true" ]; then
+        echo "🚨 ERROR: Hardcoded secrets or credentials detected! Blocking release pipeline."
+        exit 1
+      fi
+    displayName: 'Execute Gitleaks Secret Detection'
+
+  - task: PublishBuildArtifacts@1
+    displayName: 'Publish Gitleaks Report'
+    condition: always()
+    inputs:
+      PathtoPublish: '$(Build.ArtifactStagingDirectory)/gitleaks-results.json'
+      ArtifactName: 'Security-Reports'

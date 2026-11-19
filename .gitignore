@@ -1,0 +1,14 @@
+# Reports
+*.json
+*.html
+*.sarif
+coverage/
+.scannerwork/
+.sonar/
+
+# Docker volumes
+sonarqube_data/
+postgresql_data/
+
+.DS_Store
+Thumbs.db

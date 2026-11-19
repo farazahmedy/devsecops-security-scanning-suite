@@ -1,0 +1,49 @@
+# Azure DevOps Pipeline Template: SonarQube / SonarCloud Code Quality & Security Analysis
+parameters:
+  - name: sonarServiceEndpoint
+    type: string
+    default: 'SonarQube-Enterprise-ServiceConnection'
+  - name: projectKey
+    type: string
+    default: 'azure-enterprise-devsecops'
+  - name: projectName
+    type: string
+    default: 'Azure Enterprise DevSecOps'
+  - name: breakBuildOnQualityGateFailure
+    type: boolean
+    default: true
+
+steps:
+  # 1. Prepare SonarQube Analysis
+  - task: SonarQubePrepare@5
+    displayName: 'Prepare SonarQube Analysis'
+    inputs:
+      SonarQube: '${{ parameters.sonarServiceEndpoint }}'
+      scannerMode: 'CLI'
+      configMode: 'file'
+      configFile: 'configs/sonarqube/sonar-project.properties'
+      projectKey: '${{ parameters.projectKey }}'
+      projectName: '${{ parameters.projectName }}'
+
+  # 2. Run Tests & Coverage
+  - script: |
+      echo "==> Running test suite and generating LCOV coverage report..."
+      cd sample-app && npm test -- --coverage || true
+    displayName: 'Execute Tests with Code Coverage'
+
+  # 3. Execute SonarQube Code Analysis
+  - task: SonarQubeAnalyze@5
+    displayName: 'Run SonarQube Code Analysis'
+
+  # 4. Publish Quality Gate Result to Azure DevOps
+  - task: SonarQubePublish@5
+    displayName: 'Publish SonarQube Quality Gate'
+    inputs:
+      pollingTimeoutSec: '300'
+
+  # 5. Strict Quality Gate Check (Fails pipeline if bugs/vulnerabilities exceed thresholds)
+  - task: sonar-build-breaker@8
+    displayName: 'Break Build on Quality Gate Failure'
+    condition: and(succeeded(), eq('${{ parameters.breakBuildOnQualityGateFailure }}', 'true'))
+    inputs:
+      SonarQube: '${{ parameters.sonarServiceEndpoint }}'

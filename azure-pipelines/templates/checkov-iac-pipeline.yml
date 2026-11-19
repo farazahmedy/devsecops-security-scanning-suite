@@ -1,0 +1,13 @@
+# Azure DevOps Template: Checkov IaC Security & Compliance
+parameters:
+  - name: configPath
+    type: string
+    default: 'configs/checkov/.checkov.yaml'
+
+steps:
+  - script: |
+      echo "==> Installing Checkov..."
+      python3 -m pip install checkov
+      echo "==> Running Checkov IaC compliance scan..."
+      checkov --config-file ${{ parameters.configPath }} --directory .
+    displayName: 'Execute Checkov IaC Compliance Scanner'

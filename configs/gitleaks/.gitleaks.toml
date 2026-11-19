@@ -1,0 +1,37 @@
+# Enterprise Gitleaks Configuration
+title = "Enterprise Secret Detection Rules"
+
+[extend]
+useDefault = true
+
+# Custom Rule: Azure Storage Account Connection String
+[[rules]]
+id = "azure-storage-account-key"
+description = "Detected Azure Storage Account Access Key or Connection String"
+regex = '''(?i)(DefaultEndpointsProtocol=https;AccountName=[a-z0-9]+;AccountKey=[a-zA-Z0-9+/=]{86,88};)'''
+secretGroup = 1
+keywords = ["DefaultEndpointsProtocol", "AccountKey"]
+
+# Custom Rule: Azure Tenant Client Secret
+[[rules]]
+id = "azure-sp-client-secret"
+description = "Detected Azure Service Principal Client Secret"
+regex = '''(?i)(client_secret|clientSecret|azure_secret)\s*[:=]\s*["']?([a-zA-Z0-9~_.-]{34,44})["']?'''
+secretGroup = 2
+keywords = ["client_secret", "clientSecret"]
+
+# Custom Rule: GitHub Personal Access Token (Classic & Fine-grained)
+[[rules]]
+id = "github-pat"
+description = "Detected GitHub Personal Access Token"
+regex = '''ghp_[0-9a-zA-Z]{36}|github_pat_[0-9a-zA-Z_]{82}'''
+keywords = ["ghp_", "github_pat_"]
+
+# Allowlist for test dummy values
+[allowlist]
+description = "Allowlist test and mock tokens"
+regexes = [
+  '''(?i)mock_[a-z0-9_]+''',
+  '''(?i)test_[a-z0-9_]+''',
+  '''(?i)example_[a-z0-9_]+'''
+]

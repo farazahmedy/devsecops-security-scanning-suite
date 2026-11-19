@@ -1,0 +1,54 @@
+# Master DevSecOps Pipeline: SonarQube + Gitleaks + Checkov + Trivy + OWASP ZAP
+trigger:
+  branches:
+    include:
+      - main
+      - release/*
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+stages:
+  # ==========================================
+  # STAGE 1: Secret Detection & Static Analysis
+  # ==========================================
+  - stage: SAST_and_Secrets
+    displayName: 'Stage 1: Secrets & SAST Quality Gate'
+    jobs:
+      - job: GitleaksJob
+        displayName: 'Gitleaks Secret Audit'
+        steps:
+          - template: templates/gitleaks-pipeline.yml
+
+      - job: SonarQubeJob
+        displayName: 'SonarQube Quality Gate'
+        dependsOn: GitleaksJob
+        steps:
+          - template: templates/sonarqube-pipeline.yml
+
+  # ==========================================
+  # STAGE 2: Infrastructure as Code (IaC) Audit
+  # ==========================================
+  - stage: IaC_Security
+    displayName: 'Stage 2: Checkov IaC Security'
+    dependsOn: SAST_and_Secrets
+    jobs:
+      - job: CheckovJob
+        displayName: 'Checkov CIS Benchmark Scan'
+        steps:
+          - template: templates/checkov-iac-pipeline.yml
+
+  # ==========================================
+  # STAGE 3: Container Vulnerability & DAST Scan
+  # ==========================================
+  - stage: Dynamic_and_Container
+    displayName: 'Stage 3: Trivy & DAST Audit'
+    dependsOn: IaC_Security
+    jobs:
+      - job: TrivyJob
+        displayName: 'Aqua Trivy Container Scan'
+        steps:
+          - script: |
+              curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
+              trivy fs --scanners vuln --severity HIGH,CRITICAL .
+            displayName: 'Trivy Filesystem Vulnerability Scan'

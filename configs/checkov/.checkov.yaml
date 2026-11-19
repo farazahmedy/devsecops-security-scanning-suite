@@ -1,0 +1,21 @@
+# Enterprise Checkov Configuration
+framework:
+  - terraform
+  - bicep
+  - arm
+  - helm
+  - kubernetes
+
+output:
+  - cli
+  - json
+  - sarif
+
+compact: true
+quiet: false
+soft-fail: false
+download-external-modules: true
+skip-path:
+  - .terraform
+  - tests
+  - vendor
